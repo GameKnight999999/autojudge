@@ -1,72 +1,99 @@
 # /// autojudge
 # requires-python = ">=3.12"
 # dependencies = [
-#   requests,
-#   configparser
+#   requests
 # ]
 # ///
 
-import requests, configparser, os, argparse
+import requests, os, json, argparse
+
+CONFIG_FILENAME = "autojudge.json"
 
 
-CONFIG_FILENAME = "autojudge.config"
+class Data:
+    def __init__(self, token: str, contest: str) -> None:
+        self.token = token
+        self.contest = contest
+        self.connection = Connection(self.token)
+        self.problems = self.connection.get("contest-status-json", contest_id=self.contest)["problems"]
+    
 
+    @classmethod
+    def read(cls, filename: str):
+        data = json.load(open(filename, 'rt', encoding="utf-8"))
+        return cls(data["token"], data["contest"])
+    
 
-def get(action: str, **params: str):
-    response = requests.get(f"https://ejudge.letovo.ru/ej/client/{action}", params, headers=headers)
-    response.raise_for_status()
-    data = response.json()
-    if not data["ok"]:
-        raise requests.RequestException(data["error"], response=response, request=response.request)
-    return data["result"]
+    def write(self, filename: str) -> None:
+        json.dump({"token": self.token, "contest": self.contest}, open(filename, "wt", encoding="utf-8"))
+    
 
+    def send_problem(self, prob_id: str, file) -> str:
+        if not prob_id.isdigit():
+            for problem in self.problems:
+                if prob_id == problem["short_name"]:
+                    id = problem["id"]
+                    break
+            else:
+                raise KeyError(prob_id)
+        else:
+            id = prob_id
+        result = self.connection.post("submit-run", {"prob_id": id, "lang_id": "python3"}, {"file": file}, contest_id=self.contest)
+        return result["run_id"]
+    
 
-def post(action: str, data, files, **params: str):
-    response = requests.post(f"https://ejudge.letovo.ru/ej/client/{action}", data, params=params, headers=headers, files=files)
-    response.raise_for_status()
-    data = response.json()
-    if not data["ok"]:
-        raise requests.RequestException(data["error"], response=response, request=response.request)
-    return data["result"]
-
-
-def setup() -> None:
-    global config, headers, args
-    parser = argparse.ArgumentParser()
-    parser.add_argument("file", help="a python file to send as solution", type=argparse.FileType(encoding="utf-8"))
-    parser.add_argument("-n", "--no-config", help="Do not use data from config file", action="store_true")
-    args = parser.parse_args()
-    config = configparser.ConfigParser()
-    if os.path.exists(CONFIG_FILENAME) and not args.no_config:
-        config.read(CONFIG_FILENAME, encoding='utf-8')
-    else:
-        config.add_section("settings")
-        config.set("settings", "token", input("Input your API token: "))
-        config.set("settings", "contest", input("Input contest id: "))
-    headers = {
-        "Authorization": f"Bearer AQAA{config["settings"]["token"]}",
+    @property
+    def headers(self) -> dict[str, str]:
+        return {
+        "Authorization": f"Bearer AQAA{self.token}",
         "Accept": "application/json"
-    }
+        }
+
+
+class Connection:
+    def __init__(self, token: str) -> None:
+        self.headers = {
+        "Authorization": f"Bearer AQAA{token}",
+        "Accept": "application/json"
+        }
+
+
+    def get(self, action: str, **params: str):
+        response = requests.get(f"https://ejudge.letovo.ru/ej/client/{action}", params, headers=self.headers)
+        response.raise_for_status()
+        data = response.json()
+        if not data["ok"]:
+            raise requests.RequestException(data["error"], response=response, request=response.request)
+        return data["result"]
+
+
+    def post(self, action: str, data, files, **params: str):
+        response = requests.post(f"https://ejudge.letovo.ru/ej/client/{action}", data, params=params, headers=self.headers, files=files)
+        response.raise_for_status()
+        data = response.json()
+        if not data["ok"]:
+            raise requests.RequestException(data["error"], response=response, request=response.request)
+        return data["result"]
 
 
 def main() -> None:
-    setup()
-    result = get("contest-status-json", contest_id=config["settings"]["contest"])
-    if not config.has_option("settings", "problem"):
-        print("Avalible problems:", end=" ")
-        print(*[problem["short_name"] for problem in result["problems"]], sep=", ")
-        prob_name = input("Input problem name from the list: ")
-        for problem in result["problems"]:
-            if problem["short_name"] == prob_name:
-                config["settings"]["problem"] = str(problem["id"])
-    result = post("submit-run", {"prob_id": config["settings"]["problem"], "lang_id": "python3"}, {"file": args.file}, contest_id=config["settings"]["contest"])
-    print("Run id:", result["run_id"])
-    if not args.no_config:
-        config.write(open(CONFIG_FILENAME, 'wt', encoding='utf-8'))
-
-
-    
-
+    parser = argparse.ArgumentParser()
+    parser.add_argument("file", help="file to send", type=argparse.FileType(encoding="utf-8"))
+    args = parser.parse_args()
+    config_path = os.path.join(os.path.dirname(args.file.name), CONFIG_FILENAME)
+    if not os.path.exists(config_path):
+        token = input("Input your API token: ")
+        contest = input("Input contest id for this dir: ")
+        data = Data(token, contest)
+        data.write(config_path)
+    data = Data.read(config_path)
+    try:
+        run_id = data.send_problem(os.path.basename(args.file.name).removesuffix(".py"), args.file)
+    except KeyError:
+        print("Avalible problems:", ", ".join([problem["short_name"] for problem in data.problems]))
+        prob_name = input("Choose problem from listed above: ")
+        run_id = data.send_problem(prob_name, args.file)
+    print(run_id)
 
 if __name__ == "__main__":
     main()
