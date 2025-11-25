@@ -52,14 +52,6 @@ class Data:
             raise KeyError(file_ext)
         result = self.connection.post("submit-run", {"prob_id": id, "lang_id": lang_id}, {"file": file}, contest_id=self.contest)
         return result["run_id"]
-    
-
-    @property
-    def headers(self) -> dict[str, str]:
-        return {
-        "Authorization": f"Bearer AQAA{self.token}",
-        "Accept": "application/json"
-        }
 
 
 class Connection:
@@ -107,7 +99,8 @@ def main() -> None:
         print("Avalible problems:", ", ".join([problem["short_name"] for problem in data.problems]))
         prob_name = input("Choose problem from listed above: ")
         run_id = data.send_problem(prob_name, args.file)
-    print(run_id)
+    print("Run id:", run_id)
+
 
 if __name__ == "__main__":
     main()
