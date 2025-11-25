@@ -5,9 +5,10 @@
 # ]
 # ///
 
-import requests, os, json, argparse
+import requests, os, json, argparse, time
 
 CONFIG_FILENAME = os.path.expanduser(os.path.sep.join(["~", ".config", "autojudge", "settings.json"]))
+STATUS = ["OK", "CE", "RT", "TL", "PE", "WA", "CF", "PT", "AC", "IG", "DQ", "PD", "ML", "SE", "SV", "WT", "PR", "RJ", "SK", "SY", "SM"]
 
 
 class Data:
@@ -52,6 +53,14 @@ class Data:
             raise KeyError(file_ext)
         result = self.connection.post("submit-run", {"prob_id": id, "lang_id": lang_id}, {"file": file}, contest_id=self.contest)
         return result["run_id"]
+    
+
+    def get_status(self, run_id: str) -> str:
+        result = self.connection.get("run-status-json", contest_id=self.contest, run_id=run_id)
+        while result["run"]["status"] >= len(STATUS):
+            time.sleep(1)
+            result = self.connection.get("run-status-json", contest_id=self.contest, run_id=run_id)
+        return STATUS[result["run"]["status"]]
 
 
 class Connection:
@@ -100,6 +109,8 @@ def main() -> None:
         prob_name = input("Choose problem from listed above: ")
         run_id = data.send_problem(prob_name, args.file)
     print("Run id:", run_id)
+    print("Staus: ", end="", flush=True)
+    print(data.get_status(run_id))
 
 
 if __name__ == "__main__":
