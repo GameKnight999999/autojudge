@@ -96,8 +96,11 @@ def main() -> None:
         token = input("Input your API token: ")
         contest = input("Input contest id for this dir: ")
         data = Data(token, contest, os.path.dirname(args.file.name))
-        data.write(CONFIG_FILENAME)
-    data = Data.read(CONFIG_FILENAME, os.path.dirname(args.file.name))
+        if not os.path.isdir(os.path.dirname(CONFIG_FILENAME)):
+            os.makedirs(os.path.dirname(CONFIG_FILENAME))
+    else:
+        data = Data.read(CONFIG_FILENAME, os.path.dirname(args.file.name))
+    data.write(CONFIG_FILENAME)
     try:
         run_id = data.send_problem(os.path.splitext(os.path.basename(args.file.name))[0], args.file)
     except KeyError:
