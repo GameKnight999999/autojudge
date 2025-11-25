@@ -18,8 +18,7 @@ class Data:
         self.connection = Connection(self.token)
         result = self.connection.get("contest-status-json", contest_id=self.contest)
         self.problems = result["problems"]
-        self.lang_name = result["compilers"][0]["short_name"]
-        self.sfx = result["compilers"][0]["src_sfx"]
+        self.compilers = result["compilers"]
     
 
     @classmethod
@@ -44,7 +43,14 @@ class Data:
                 raise KeyError(prob_id)
         else:
             id = prob_id
-        result = self.connection.post("submit-run", {"prob_id": id, "lang_id": self.lang_name}, {"file": file}, contest_id=self.contest)
+        file_ext = os.path.splitext(file.name)[1]
+        for compiler in self.compilers:
+            if compiler["src_sfx"] == file_ext:
+                lang_id = compiler["id"]
+                break
+        else:
+            raise KeyError(file_ext)
+        result = self.connection.post("submit-run", {"prob_id": id, "lang_id": lang_id}, {"file": file}, contest_id=self.contest)
         return result["run_id"]
     
 
@@ -93,7 +99,7 @@ def main() -> None:
         data.write(CONFIG_FILENAME)
     data = Data.read(CONFIG_FILENAME, os.path.dirname(args.file.name))
     try:
-        run_id = data.send_problem(os.path.basename(args.file.name).removesuffix(data.sfx), args.file)
+        run_id = data.send_problem(os.path.splitext(os.path.basename(args.file.name))[0], args.file)
     except KeyError:
         print("Avalible problems:", ", ".join([problem["short_name"] for problem in data.problems]))
         prob_name = input("Choose problem from listed above: ")
