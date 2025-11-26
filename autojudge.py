@@ -55,12 +55,12 @@ class Data:
         return result["run_id"]
     
 
-    def get_status(self, run_id: str) -> str:
+    def get_run_info(self, run_id: str) -> tuple[str, str]:
         result = self.connection.get("run-status-json", contest_id=self.contest, run_id=run_id)
         while result["run"]["status"] >= len(STATUS):
             time.sleep(1)
             result = self.connection.get("run-status-json", contest_id=self.contest, run_id=run_id)
-        return STATUS[result["run"]["status"]]
+        return STATUS[result["run"]["status"]], result["run"]["failed_test"]
 
 
 class Connection:
@@ -110,7 +110,10 @@ def main() -> None:
         run_id = data.send_problem(prob_name, args.file)
     print("Run id:", run_id)
     print("Staus: ", end="", flush=True)
-    print(data.get_status(run_id))
+    run = data.get_run_info(run_id)
+    print(run[0])
+    if run[0] != "OK":
+        print("Failed test:", run[1])
 
 
 if __name__ == "__main__":
