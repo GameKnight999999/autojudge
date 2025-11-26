@@ -5,9 +5,9 @@
       <img width="1600" height="900" alt="image" src="https://github.com/user-attachments/assets/c1ec413f-ea00-4c27-907d-a0e573d110e4" />
    1. Перейдите на вкладку Info
    2. Зайдите в раздел API Keys
-      <img width="1600" height="900" alt="image" src="https://github.com/user-attachments/assets/cf7155db-ffd9-4cee-88e5-1d1295e84f02" />
+      <img width="1600" height="730" alt="image" src="https://github.com/user-attachments/assets/37a9f8f9-1693-4a38-9e00-d483d3260ec8" />
    3. Нажмите кнопку Submit
-      <img width="1600" height="900" alt="image" src="https://github.com/user-attachments/assets/0def3119-871a-4556-b950-ecdbedad3fcf" />
+      <img width="1600" height="512" alt="image" src="https://github.com/user-attachments/assets/3f3cd85d-65a4-4bed-a72f-b95f49f62e07" />
    4. Вам нужна только верхняя строка. Скопируйте ключ и введите его в программу. Ключ можно не сохранять, его всегда можно посмотреть на вкладке Info/API Keys
 ## Использование
 Для того, чтобы отправить файл в ejudge, просто выполните `python autojudge.py <file>`. При первой отправке файла из директории программа спросит вас о номере контеста, в который отправлять файл. В дальнейшем все файлы из этой директории будут автоматически отправляться в этот контест.
