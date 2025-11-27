@@ -60,7 +60,8 @@ class Data:
         while result["run"]["status"] >= len(STATUS):
             time.sleep(1)
             result = self.connection.get("run-status-json", contest_id=self.contest, run_id=run_id)
-        return STATUS[result["run"]["status"]], result["run"]["failed_test"]
+        status = STATUS[result["run"]["status"]]
+        return status, result["run"].get("failed_test", "N/A")
 
 
 class Connection:
@@ -112,8 +113,7 @@ def main() -> None:
     print("Staus: ", end="", flush=True)
     run = data.get_run_info(run_id)
     print(run[0])
-    if run[0] != "OK":
-        print("Failed test:", run[1])
+    print("Failed test:", run[1])
 
 
 if __name__ == "__main__":
