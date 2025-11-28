@@ -20,6 +20,7 @@ class Data:
         result = self.connection.get("contest-status-json", contest_id=self.contest)
         self.problems = result["problems"]
         self.compilers = result["compilers"]
+        self.is_score = result["contest"]["score_system"] == 1
     
 
     @classmethod
@@ -61,6 +62,8 @@ class Data:
             time.sleep(1)
             result = self.connection.get("run-status-json", contest_id=self.contest, run_id=run_id)
         status = STATUS[result["run"]["status"]]
+        if self.is_score:
+            return status, result["run"]["score"]
         return status, result["run"].get("failed_test", "N/A")
 
 
@@ -113,7 +116,10 @@ def main() -> None:
     print("Staus: ", end="", flush=True)
     run = data.get_run_info(run_id)
     print(run[0])
-    print("Failed test:", run[1])
+    if data.is_score:
+        print("Score:", run[1])
+    else:
+        print("Failed test:", run[1])
 
 
 if __name__ == "__main__":
