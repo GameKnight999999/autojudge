@@ -27,7 +27,11 @@ class Data:
     def read(cls, filename: str, dir: str):
         data = json.load(open(filename, 'rt', encoding="utf-8"))
         if dir not in data["contests"]:
-            data["contests"][dir] = input("Input contest id for this directory: ")
+            dirname = os.path.basename(dir)
+            if dirname.isdigit() and len(dirname) == 6:
+                data["contests"][dir] = dirname
+            else:
+                data["contests"][dir] = input("Input contest id for this directory: ")
         return cls(data["token"], data["contests"][dir], None, data)
     
 
@@ -99,8 +103,13 @@ def main() -> None:
     args = parser.parse_args()
     if not os.path.exists(CONFIG_FILENAME):
         token = input("Input your API token: ")
-        contest = input("Input contest id for this dir: ")
-        data = Data(token, contest, os.path.dirname(args.file.name))
+        dirpath = os.path.dirname(args.file.name)
+        dirname = os.path.basename(dirpath)
+        if dirname.isdigit() and len(dirname) == 6:
+            contest = dirname
+        else:
+            contest = input("Input contest id for this directory: ")
+        data = Data(token, contest, dirpath)
         if not os.path.isdir(os.path.dirname(CONFIG_FILENAME)):
             os.makedirs(os.path.dirname(CONFIG_FILENAME))
     else:
